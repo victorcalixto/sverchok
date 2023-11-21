@@ -53,17 +53,8 @@ if FreeCAD is not None:
     import Part
     STANDARD_TYPES = STANDARD_TYPES + (Part.Shape,)
 
-def get_current_bpy_NodeSocketInterface():
-    """
-    feel free to change this or move it to somewhere more appropriate, this is here only 
-    to test Blender 4.0
-    """
-    if hasattr(bpy.types, "NodeSocketInterface"):
-        return bpy.types.NodeSocketInterface
-    else:
-        return bpy.types.NodeTreeInterfaceSocket
-
-BPY_NodeTreeInterfaceSocket = get_current_bpy_NodeSocketInterface()
+InterfaceSocket = bpy.types.NodeTreeInterfaceSocket if bpy.app.version >= (4, 0) \
+             else bpy.types.NodeSocketInterface
 
 
 def process_from_socket(self, context):
@@ -484,9 +475,9 @@ class SvSocketCommon(SvSocketProcessing):
         If prop_origin is None then the default socket property should be shown
         """
         if prop_origin is None and hasattr(self, prop_name):
-            layout.prop(self, 'default_property')
+            layout.prop(self, 'default_property', text=self.label or None)
         else:
-            layout.prop(prop_origin, prop_name)
+            layout.prop(prop_origin, prop_name, text=self.label or None)
 
     def draw_quick_link(self, context, layout, node):
         """
@@ -553,7 +544,7 @@ class SvSocketCommon(SvSocketProcessing):
 
             elif node.bl_idname == 'SvGroupTreeNode' and hasattr(self, 'draw_group_property'):  # group node
                 if node.node_tree:  # when tree is removed from node sockets still exist
-                    interface_socket = node.node_tree.inputs[self.index]
+                    interface_socket = list(node.node_tree.sockets('INPUT'))[self.index]
                     self.draw_group_property(layout, text, interface_socket)
 
             elif node.bl_idname == 'NodeGroupOutput' and hasattr(self, 'draw_group_property'):  # group out node
@@ -576,9 +567,14 @@ class SvSocketCommon(SvSocketProcessing):
         if self.has_menu(context):
             self.draw_menu_button(context, layout, node, text)
 
-
-    def draw_color(self, context, node):
-        return self.color
+    # https://wiki.blender.org/wiki/Reference/Release_Notes/4.0/Python_API#Node_Groups
+    if bpy.app.version >= (4, 0):
+        @classmethod
+        def draw_color_simple(cls):
+            return cls.color
+    else:
+        def draw_color(self, context, node):
+            return self.color
 
 
 class SvObjectSocket(NodeSocket, SvSocketCommon):
@@ -627,9 +623,9 @@ class SvObjectSocket(NodeSocket, SvSocketCommon):
 
     def draw_property(self, layout, prop_origin=None, prop_name='default_property'):
         if prop_origin:
-            layout.prop(prop_origin, prop_name)  # need for consistency, probably will never be used
+            layout.prop(prop_origin, prop_name, text=self.label or None)  # need for consistency, probably will never be used
         else:
-            layout.prop_search(self, 'object_ref_pointer', bpy.data, 'objects', text=self.name)
+            layout.prop_search(self, 'object_ref_pointer', bpy.data, 'objects', text=self.label or self.name)
 
 
 class SvFormulaSocket(NodeSocket, SvSocketCommon):
@@ -740,7 +736,7 @@ class SvVerticesSocket(SocketDomain, NodeSocket, SvSocketCommon):
         else:
             c1.prop(self, "expanded", icon='TRIA_DOWN', text="")
             row = c2.row(align=True)
-            row.template_component_menu(prop_origin, prop_name, name=self.name)
+            row.template_component_menu(prop_origin, prop_name, name=self.label or self.name)
 
     def do_graft(self, data):
         return graft_data(data, item_level=1)
@@ -757,7 +753,8 @@ class SvVerticesSocket(SocketDomain, NodeSocket, SvSocketCommon):
             return False
         return self.name not in {'Vertices', 'Verts'}
 
-class SvVerticesSocketInterface(BPY_NodeTreeInterfaceSocket):
+
+class SvVerticesSocketInterface(InterfaceSocket):
     """
     This socket will be created in tree.inputs to tree.outputs collection
     when normal socket will be connected to input or output group nodes
@@ -805,7 +802,7 @@ class SvQuaternionSocket(NodeSocket, SvSocketCommon):
         else:
             c1.prop(self, "expanded", icon='TRIA_DOWN', text="")
             row = c2.row(align=True)
-            row.template_component_menu(prop_origin, prop_name, name=self.name)
+            row.template_component_menu(prop_origin, prop_name, name=self.label or self.name)
 
     def do_flatten(self, data):
         return flatten_data(data, 1, data_types=(Quaternion,))
@@ -846,7 +843,7 @@ class SvColorSocket(SocketDomain, NodeSocket, SvSocketCommon):
         else:
             c1.prop(self, "expanded", icon='TRIA_DOWN', text="")
             row = c2.row(align=True)
-            row.prop(prop_origin, prop_name)
+            row.prop(prop_origin, prop_name, text=self.label or None)
 
     def draw_group_property(self, layout, text, interface_socket):
         if not interface_socket.hide_value:
@@ -964,13 +961,13 @@ class SvStringsSocket(SocketDomain, NodeSocket, SvSocketCommon):
 
     def draw_property(self, layout, prop_origin=None, prop_name=None):
         if prop_origin and prop_name:
-            layout.prop(prop_origin, prop_name)
+            layout.prop(prop_origin, prop_name, text=self.label or None)
         elif self.use_prop:
             row = layout.row(align=True)
             if self.default_property_type == 'float':
-                row.prop(self, 'default_float_property', text=self.name)
+                row.prop(self, 'default_float_property', text=self.label or self.name)
             elif self.default_property_type == 'int':
-                row.prop(self, 'default_int_property', text=self.name)
+                row.prop(self, 'default_int_property', text=self.label or self.name)
             if self.show_property_type:
                 icon = 'IPO_LINEAR' if self.default_property_type == 'float' else 'IPO_CONSTANT'
                 row.operator(SvSwitchDefaultOp.bl_idname, icon=icon, text='')
@@ -1055,7 +1052,7 @@ class SvStringsSocket(SocketDomain, NodeSocket, SvSocketCommon):
             layout.label(text=text)
 
 
-class SvStringsSocketInterface(BPY_NodeTreeInterfaceSocket):
+class SvStringsSocketInterface(InterfaceSocket):
     """
     This socket will be created in tree.inputs to tree.outputs collection
     when normal socket will be connected to input or output group nodes
@@ -1594,8 +1591,7 @@ def socket_interface_classes():
                 pass
 
         socket_interface_attributes['draw'] = draw
-        yield type(
-            f'{socket_cls.__name__}Interface', (BPY_NodeTreeInterfaceSocket,), socket_interface_attributes)
+        yield type(f'{socket_cls.__name__}Interface', (InterfaceSocket,), socket_interface_attributes)
 
 
 register, unregister = bpy.utils.register_classes_factory(classes + list(socket_interface_classes()))

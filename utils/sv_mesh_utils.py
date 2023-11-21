@@ -65,7 +65,7 @@ def polygons_to_edges(obj, unique_edges=False):
 
 
 def pols_to_edges_irregular_mesh(pols, unique_edges):
-    np_pols = np.array(pols)
+    np_pols = np.array(pols,dtype=object)
     np_len = np.vectorize(len)
     lens = np_len(np_pols)
     pol_types = np.unique(lens)
@@ -376,16 +376,12 @@ def non_redundant_faces_indices_np(faces):
 def point_inside_mesh(bvh, point):
     point = Vector(point)
     axis = Vector((1, 0, 0))
-    outside = False
-    count = 0
-    while True:
-        location, normal, index, distance = bvh.ray_cast(point, axis)
-        if index is None:
-            break
-        count += 1
-        point = location + axis * 0.00001
-    if count % 2 == 0:
-        outside = True
+    outside = True
+    location, normal, index, distance = bvh.ray_cast(point, axis)
+    if index is not None:
+        if normal.dot(point-location)<0:
+            outside = False
+
     return not outside
 
 ################
