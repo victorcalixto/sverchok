@@ -18,7 +18,7 @@ import bpy
 from sverchok import old_nodes
 from sverchok.utils.handle_blender_data import BPYPointers, BPYProperty
 from sverchok.utils.sv_node_utils import recursive_framed_location_finder
-from sverchok.core import InterfaceSocket
+from sverchok.core.sockets import InterfaceSocket
 
 
 if TYPE_CHECKING:
