@@ -383,7 +383,7 @@
     - SvExVoronoi3DNode
     - SvExVoronoiSphereNode
     - SvVoronoiOnSurfaceNode
-    - SvVoronoiOnMeshNodeMK2
+    - SvVoronoiOnMeshNodeMK3
     - SvVoronoiOnSolidNodeMK2
     - ---
     - SvLloyd2dNode
@@ -395,6 +395,7 @@
     - ---
     - SvConvexHullNodeMK2
     - SvConcaveHullNode
+    - SvMeshClusteringNode
 
 
 ################################################################################
@@ -413,6 +414,7 @@
         - SvVolumeNodeMK2
         - SvAreaNode
         - DistancePPNode
+        - SvWeightedVectorSumNode
         - SvDistancePointLineNode
         - SvDistancePointPlaneNode
         - SvDistancetLineLineNode
@@ -822,7 +824,7 @@
 - Scene:
     - icon_name: SCENE_DATA
     - extra_menu: ConnectionPartialMenu
-    - SvGetObjectsDataMK2
+    - SvGetObjectsDataMK3
     - SvObjInLite
     - SvCurveInputNode
     - SvFCurveInNodeMK1
